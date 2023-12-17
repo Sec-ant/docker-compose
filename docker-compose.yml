@@ -30,6 +30,7 @@ services:
       - HTTP_PROXY=http://10.10.10.6:7890
       - HTTPS_PROXY=http://10.10.10.6:7890
     volumes:
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/jellyfin/custom-files:/custom-cont-init.d:ro
       - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/jellyfin/config:/config
       - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/jellyfin/fonts:/usr/share/fonts
       - /mnt/mergerfs/mountpoint:/data
