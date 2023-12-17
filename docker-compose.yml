@@ -14,7 +14,8 @@ services:
       - /mnt/mergerfs/mountpoint:/downloads
     network_mode: host
     depends_on:
-      - mergerfs
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   jellyfin:
@@ -31,8 +32,10 @@ services:
       - /mnt/mergerfs/mountpoint:/data
     network_mode: host
     depends_on:
-      - clash-premium
-      - mergerfs
+      clash-premium:
+        condition: service_started
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   komga:
@@ -47,7 +50,8 @@ services:
     network_mode: host
     user: 0:0
     depends_on:
-      - mergerfs
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   homeassistant:
@@ -73,9 +77,12 @@ services:
     ports:
       - 2283:3001
     depends_on:
-      - redis
-      - database
-      - mergerfs
+      redis:
+        condition: service_started
+      database:
+        condition: service_started
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   immich-microservices:
@@ -91,9 +98,12 @@ services:
     env_file:
       - .env
     depends_on:
-      - redis
-      - database
-      - mergerfs
+      redis:
+        condition: service_started
+      database:
+        condition: service_started
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   immich-machine-learning:
@@ -131,7 +141,8 @@ services:
       - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/nginx/html:/usr/share/nginx/html:ro
       - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - dashy
+      dashy:
+        condition: service_started
     restart: always
 
   dashy:
@@ -167,8 +178,10 @@ services:
     command:
       - /app/config.toml
     depends_on:
-      - jellyfin
-      - komga
+      jellyfin:
+        condition: service_started
+      komga:
+        condition: service_started
     restart: always
 
   mergerfs:
@@ -184,6 +197,9 @@ services:
     devices:
       - /dev/fuse
     command: -o allow_other /branch_1:/branch_2 /mountpoint
+    healthcheck:
+      test: "exit 0"
+      interval: 5s
     restart: always
 
 volumes:
