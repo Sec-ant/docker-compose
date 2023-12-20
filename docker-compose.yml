@@ -115,15 +115,26 @@ services:
   immich-machine-learning:
     container_name: immich_machine_learning
     image: altran1502/immich-machine-learning:${IMMICH_VERSION:-release}
+    environment:
+      - HTTP_PROXY=http://10.10.10.6:7890
+      - HTTPS_PROXY=http://10.10.10.6:7890
     volumes:
-      - model-cache:/cache
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/immich/cache:/cache
     env_file:
       - .env
+    depends_on:
+      clash-premium:
+        condition: service_started
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   redis:
     container_name: immich_redis
     image: redis:6.2-alpine@sha256:b6124ab2e45cc332e16398022a411d7e37181f21ff7874835e0180f56a09e82a
+    depends_on:
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   database:
@@ -136,7 +147,35 @@ services:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_DB: ${DB_DATABASE_NAME}
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/immich/pgdata:/var/lib/postgresql/data
+    depends_on:
+      mergerfs:
+        condition: service_healthy
+    restart: always
+
+  icloudpd:
+    container_name: icloudpd
+    image: boredazfcuk/icloudpd:latest
+    volumes:
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/config:/config
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/iCloud:/iCloud
+    depends_on:
+      mergerfs:
+        condition: service_healthy
+    restart: unless-stopped
+
+  node:
+    container_name: node
+    image: node:20-alpine
+    stdin_open: true
+    tty: true
+    volumes:
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/iCloud:/iCloud
+    depends_on:
+      clash-premium:
+        condition: service_started
+      mergerfs:
+        condition: service_healthy
     restart: always
 
   nginx:
@@ -207,7 +246,3 @@ services:
       test: "exit 0"
       interval: 5s
     restart: always
-
-volumes:
-  pgdata:
-  model-cache:
