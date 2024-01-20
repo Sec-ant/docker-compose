@@ -13,11 +13,11 @@ services:
     volumes:
       - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/qbittorrent:/config
       - /mnt/mergerfs/mountpoint:/downloads
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/qbittorrent/tmpdl:/tmpdl
     network_mode: host
     depends_on:
       mergerfs:
         condition: service_healthy
-    restart: always
 
   jellyfin:
     container_name: jellyfin
@@ -38,11 +38,10 @@ services:
     devices:
       - /dev/dri:/dev/dri
     depends_on:
-      clash-premium:
+      sing-box:
         condition: service_started
       mergerfs:
         condition: service_healthy
-    restart: always
 
   komga:
     container_name: komga
@@ -58,7 +57,6 @@ services:
     depends_on:
       mergerfs:
         condition: service_healthy
-    restart: always
 
   homeassistant:
     container_name: homeassistant
@@ -69,7 +67,6 @@ services:
       - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/homeassistant/config:/config
     privileged: true
     network_mode: host
-    restart: always
 
   immich-server:
     container_name: immich_server
@@ -83,13 +80,10 @@ services:
     ports:
       - 2283:3001
     depends_on:
-      redis:
+      immich-redis:
         condition: service_started
-      database:
+      immich-postgres:
         condition: service_started
-      mergerfs:
-        condition: service_healthy
-    restart: always
 
   immich-microservices:
     container_name: immich_microservices
@@ -104,13 +98,10 @@ services:
     env_file:
       - .env
     depends_on:
-      redis:
+      immich-redis:
         condition: service_started
-      database:
+      immich-postgres:
         condition: service_started
-      mergerfs:
-        condition: service_healthy
-    restart: always
 
   immich-machine-learning:
     container_name: immich_machine_learning
@@ -123,21 +114,19 @@ services:
     env_file:
       - .env
     depends_on:
-      clash-premium:
+      sing-box:
         condition: service_started
       mergerfs:
         condition: service_healthy
-    restart: always
 
-  redis:
+  immich-redis:
     container_name: immich_redis
     image: redis:6.2-alpine@sha256:b6124ab2e45cc332e16398022a411d7e37181f21ff7874835e0180f56a09e82a
     depends_on:
       mergerfs:
         condition: service_healthy
-    restart: always
 
-  database:
+  immich-postgres:
     container_name: immich_postgres
     image: tensorchord/pgvecto-rs:pg14-v0.1.11@sha256:0335a1a22f8c5dd1b697f14f079934f5152eaaa216c09b61e293be285491f8ee
     env_file:
@@ -151,32 +140,6 @@ services:
     depends_on:
       mergerfs:
         condition: service_healthy
-    restart: always
-
-  icloudpd:
-    container_name: icloudpd
-    image: boredazfcuk/icloudpd:latest
-    volumes:
-      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/config:/config
-      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/iCloud:/iCloud
-    depends_on:
-      mergerfs:
-        condition: service_healthy
-    restart: unless-stopped
-
-  node:
-    container_name: node
-    image: node:20-alpine
-    stdin_open: true
-    tty: true
-    volumes:
-      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/iCloud:/iCloud
-    depends_on:
-      clash-premium:
-        condition: service_started
-      mergerfs:
-        condition: service_healthy
-    restart: always
 
   nginx:
     container_name: nginx
@@ -188,7 +151,6 @@ services:
     depends_on:
       dashy:
         condition: service_started
-    restart: always
 
   dashy:
     container_name: dashy
@@ -202,15 +164,14 @@ services:
     network_mode: bridge
     ports:
       - 4000:80
-    restart: always
 
-  clash-premium:
-    container_name: clash-premium
-    image: dreamacro/clash-premium:latest
+  sing-box:
+    container_name: sing-box
+    image: ghcr.io/sagernet/sing-box:v1.8.2
+    entrypoint: sing-box run -c /root/config.json
     volumes:
-      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/clash/config.yaml:/root/.config/clash/config.yaml:ro
+      - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/sing-box/config.json:/root/config.json
     network_mode: host
-    restart: always
 
   rathole:
     container_name: rathole
@@ -227,7 +188,6 @@ services:
         condition: service_started
       komga:
         condition: service_started
-    restart: always
 
   mergerfs:
     container_name: mergerfs
@@ -241,8 +201,30 @@ services:
       - SYS_ADMIN
     devices:
       - /dev/fuse
-    command: -o allow_other /branch_1:/branch_2 /mountpoint
+    command: -o cache.files=partial,dropcacheonclose=true,category.create=mfs,allow_other /branch_1:/branch_2 /mountpoint
     healthcheck:
       test: "exit 0"
       interval: 5s
-    restart: always
+
+  # icloudpd:
+  #   container_name: icloudpd
+  #   image: boredazfcuk/icloudpd:latest
+  #   volumes:
+  #     - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/config:/config
+  #     - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/icloudpd/iCloud:/iCloud
+  #   depends_on:
+  #     mergerfs:
+  #       condition: service_healthy
+  #
+  # node:
+  #   container_name: node
+  #   image: node:20-alpine
+  #   stdin_open: true
+  #   tty: true
+  #   volumes:
+  #     - /mnt/mergerfs/mountpoint:/mountpoint
+  #   depends_on:
+  #     sing-box:
+  #       condition: service_started
+  #     mergerfs:
+  #       condition: service_healthy
