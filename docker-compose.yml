@@ -128,7 +128,7 @@ services:
 
   immich-postgres:
     container_name: immich_postgres
-    image: tensorchord/pgvecto-rs:pg14-v0.1.11@sha256:0335a1a22f8c5dd1b697f14f079934f5152eaaa216c09b61e293be285491f8ee
+    image: tensorchord/pgvecto-rs:pg14-v0.2.0@sha256:90724186f0a3517cf6914295b5ab410db9ce23190a2d9d0b9dd6463e3fa298f0
     env_file:
       - .env
     environment:
@@ -167,7 +167,7 @@ services:
 
   sing-box:
     container_name: sing-box
-    image: ghcr.io/sagernet/sing-box:v1.8.2
+    image: ghcr.io/sagernet/sing-box:v1.8.10
     entrypoint: sing-box run -c /root/config.json
     volumes:
       - /mnt/media_rw/3d24fb66-314f-48b9-a26f-f91999170865/.ugreen_nas/155924/sing-box/config.json:/root/config.json
